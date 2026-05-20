@@ -11,7 +11,7 @@ if (!existsSync(serverPath)) {
     execSync('npm run build', { stdio: 'inherit' });
     console.log('> [Hostinger Auto-Build]: Production compile completed successfully.');
   } catch (error) {
-    console.error('> [Hostinger Auto-Build Error]: Programmatic compilation failed. Verify npm install succeeded.', error);
+    console.error('> [Hostinger Auto-Build Error]: Programmatic compilation failed.', error);
   }
 }
 
@@ -19,8 +19,6 @@ if (!existsSync(serverPath)) {
 const serverModule = await import('./dist/server/server.js');
 const server = serverModule.default || serverModule;
 
-
-const port = process.env.PORT || process.env.port || 3000;
 const CLIENT_DIR = join(process.cwd(), 'dist', 'client');
 
 // Elegant MIME types map for production assets
@@ -42,32 +40,30 @@ const MIME_TYPES = {
   '.otf': 'font/otf',
 };
 
-createServer(async (req, res) => {
+// Core request handler — used by both standalone and Passenger modes
+async function handleRequest(req, res) {
   try {
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers.host || 'localhost';
     const url = new URL(req.url, `${protocol}://${host}`);
     
-    // 1. Resolve asset path and check if the static asset exists in dist/client
+    // Serve static assets from dist/client
     const decodedPath = decodeURIComponent(url.pathname);
     const filePath = join(CLIENT_DIR, decodedPath);
     
-    // Prevent directory traversal attacks by making sure path is within CLIENT_DIR
     if (filePath.startsWith(CLIENT_DIR) && existsSync(filePath) && statSync(filePath).isFile()) {
       const ext = extname(filePath).toLowerCase();
       const contentType = MIME_TYPES[ext] || 'application/octet-stream';
       
       res.statusCode = 200;
       res.setHeader('content-type', contentType);
-      
-      // Cache assets for 1 year in production
       res.setHeader('cache-control', 'public, max-age=31536000, immutable');
       
       createReadStream(filePath).pipe(res);
       return;
     }
 
-    // 2. Construct web standard Request object for TanStack Start Fetch handler
+    // Construct web standard Request for TanStack Start SSR handler
     const headers = new Headers();
     for (const [key, value] of Object.entries(req.headers)) {
       if (value !== undefined) {
@@ -91,10 +87,8 @@ createServer(async (req, res) => {
       duplex: 'half',
     });
 
-    // 3. Dispatch to the TanStack Start request processor
     const webResponse = await server.fetch(webRequest);
 
-    // 4. Write standard Web Response back to the Node response stream
     res.statusCode = webResponse.status;
     res.statusMessage = webResponse.statusText;
     
@@ -135,13 +129,13 @@ createServer(async (req, res) => {
       h1 { font-size: 1.25rem; margin: 0 0 0.5rem; color: #dc2626; }
       p { color: #4b5563; margin: 0 0 1.5rem; }
       .actions { display: flex; gap: 0.5rem; justify-content: center; }
-      button { padding: 0.5rem 1rem; border-radius: 0.375rem; font: inherit; cursor: pointer; text-decoration: none; border: 1px solid transparent; background: #111; color: #fff; }
+      button { padding: 0.5rem 1rem; border-radius: 0.375rem; font: inherit; cursor: pointer; border: 1px solid transparent; background: #111; color: #fff; }
     </style>
   </head>
   <body>
     <div class="card">
       <h1>Internal Server Error</h1>
-      <p>Something went wrong running the application server. Please try refreshing or check the application logs in hPanel.</p>
+      <p>Something went wrong. Please try refreshing or check the application logs in hPanel.</p>
       <div class="actions">
         <button onclick="location.reload()">Try again</button>
       </div>
@@ -150,6 +144,23 @@ createServer(async (req, res) => {
 </html>`);
     }
   }
-}).listen(port, () => {
-  console.log(`> Production server successfully listening on http://localhost:${port}`);
-});
+}
+
+// 3. Create the HTTP server
+const app = createServer(handleRequest);
+
+// 4. Detect Hostinger's Phusion Passenger or start standalone
+const port = process.env.PORT || process.env.port || 3000;
+
+if (typeof globalThis.PhusionPassenger !== 'undefined') {
+  // Passenger mode — Hostinger shared hosting runs through Phusion Passenger
+  globalThis.PhusionPassenger.configure({ autoInstall: false });
+  app.listen('passenger', () => {
+    console.log('> Production server started via Phusion Passenger');
+  });
+} else {
+  // Standalone mode — direct Node.js or VPS
+  app.listen(port, () => {
+    console.log(`> Production server listening on http://localhost:${port}`);
+  });
+}

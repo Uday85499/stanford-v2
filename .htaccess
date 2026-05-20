@@ -1,0 +1,15 @@
+DirectoryIndex disabled
+
+RewriteEngine On
+
+# Serve existing static files directly (images, css, js, etc.)
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# Route everything else through the Node.js application
+RewriteRule ^ index.js [L]
+
+# Enable Passenger Node.js app
+PassengerEnabled on
+PassengerAppType node
+PassengerStartupFile index.js
