@@ -5,7 +5,7 @@ import {
   Microscope, Music2, Dumbbell, Brain, Menu, X, Star, Quote,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useTransform, useReducedMotion, type Variants } from "framer-motion";
 
 import logo from "@/assets/school/new-logo1.webp";
 import heroBanner from "@/assets/school/new-banner.webp";
@@ -48,7 +48,7 @@ const nav = [
 ];
 
 // Motion presets
-import type { Variants } from "framer-motion";
+
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 28 },
   show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: "easeOut" } },
