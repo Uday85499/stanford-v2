@@ -48,17 +48,18 @@ const nav = [
 ];
 
 // Motion presets
-const fadeUp = {
+import type { Variants } from "framer-motion";
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 28 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.21, 0.6, 0.35, 1] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: "easeOut" } },
 };
-const stagger = {
+const stagger: Variants = {
   hidden: {},
   show: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } },
 };
-const scaleIn = {
+const scaleIn: Variants = {
   hidden: { opacity: 0, scale: 0.92 },
-  show: { opacity: 1, scale: 1, transition: { duration: 0.7, ease: [0.21, 0.6, 0.35, 1] } },
+  show: { opacity: 1, scale: 1, transition: { duration: 0.7, ease: "easeOut" } },
 };
 
 function Index() {
