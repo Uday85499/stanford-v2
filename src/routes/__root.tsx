@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -107,9 +108,38 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const [clientErrors, setClientErrors] = useState<string[]>([]);
+
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      const msg = `${event.message} at ${event.filename}:${event.lineno}:${event.colno}`;
+      setClientErrors((prev) => [...prev, msg]);
+      fetch(`/api/layout-debug?error=${encodeURIComponent(msg)}`).catch(() => {});
+    };
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason instanceof Error ? event.reason.message : String(event.reason);
+      const msg = `Unhandled Rejection: ${reason}`;
+      setClientErrors((prev) => [...prev, msg]);
+      fetch(`/api/layout-debug?error=${encodeURIComponent(msg)}`).catch(() => {});
+    };
+    window.addEventListener("error", handleError);
+    window.addEventListener("unhandledrejection", handleRejection);
+    return () => {
+      window.removeEventListener("error", handleError);
+      window.removeEventListener("unhandledrejection", handleRejection);
+    };
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
+      {clientErrors.length > 0 && (
+        <div style={{ padding: "20px", background: "#fee2e2", color: "#991b1b", border: "2px solid #ef4444", position: "fixed", top: 0, left: 0, right: 0, zIndex: 99999, maxHeight: "200px", overflowY: "auto" }}>
+          <h3 style={{ margin: 0, fontWeight: "bold" }}>Client-side Errors Detected:</h3>
+          <ul style={{ margin: "5px 0 0 0", paddingLeft: "20px" }}>
+            {clientErrors.map((err, idx) => <li key={idx}>{err}</li>)}
+          </ul>
+        </div>
+      )}
       <Outlet />
     </QueryClientProvider>
   );
