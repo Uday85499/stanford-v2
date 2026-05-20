@@ -69,27 +69,6 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
-      const url = new URL(request.url);
-      if (url.pathname === "/api/layout-debug") {
-        const data = url.searchParams.get("data");
-        const error = url.searchParams.get("error");
-        if (data) {
-          console.log("=== CLIENT LAYOUT REPORT ===");
-          try {
-            console.log(JSON.stringify(JSON.parse(data), null, 2));
-          } catch {
-            console.log(data);
-          }
-          console.log("============================");
-        }
-        if (error) {
-          console.error("=== CLIENT ERROR REPORT ===");
-          console.error(error);
-          console.error("===========================");
-        }
-        return new Response("OK", { status: 200 });
-      }
-
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
