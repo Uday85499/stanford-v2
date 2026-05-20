@@ -1,7 +1,24 @@
 import { createServer } from 'node:http';
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { join, extname } from 'node:path';
-import server from './dist/server/server.js';
+import { execSync } from 'node:child_process';
+
+// 1. Automatically trigger production compile if dist is missing (critical for Git-based deployment)
+const serverPath = join(process.cwd(), 'dist', 'server', 'server.js');
+if (!existsSync(serverPath)) {
+  console.log('> [Hostinger Auto-Build]: Compiled bundle not found. Compiling application...');
+  try {
+    execSync('npm run build', { stdio: 'inherit' });
+    console.log('> [Hostinger Auto-Build]: Production compile completed successfully.');
+  } catch (error) {
+    console.error('> [Hostinger Auto-Build Error]: Programmatic compilation failed. Verify npm install succeeded.', error);
+  }
+}
+
+// 2. Load the compiled server module dynamically
+const serverModule = await import('./dist/server/server.js');
+const server = serverModule.default || serverModule;
+
 
 const port = process.env.PORT || process.env.port || 3000;
 const CLIENT_DIR = join(process.cwd(), 'dist', 'client');
