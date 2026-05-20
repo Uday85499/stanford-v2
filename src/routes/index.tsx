@@ -234,7 +234,7 @@ function Index() {
             <motion.div
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              animate-bounce={undefined}
+              
               className="absolute bottom-8 right-4 glass-dark rounded-2xl p-5 w-56"
             >
               <div className="flex items-center gap-1 text-[var(--yellow)]">
